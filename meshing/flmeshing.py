@@ -3,6 +3,7 @@ from string import Template
 import re
 import os
 import subprocess
+import pprint
 
 class FLMeshing(Benchmark):
     warmups = 0
@@ -45,6 +46,8 @@ class FLMeshing(Benchmark):
         geofile = self.filename(name='box', dim=dim, size=size, end='.geo')
         meshfile = self.filename(name='box', dim=dim, size=size, end='.msh')
         logfile = self.filename(name='flmeshing', dim=dim, size='', end='.log')
+        metafile = self.filename(name='flmeshing', dim=dim, size='', end='.meta')
+        re_gmsh_info = re.compile(r"Info\s+:\s+([0-9]+)\s+vertices\s+([0-9]+)\s+elements")
 
         if not force and os.path.exists(meshfile):
             return
@@ -60,6 +63,20 @@ class FLMeshing(Benchmark):
                 subprocess.check_call(cmd, stderr=log, stdout=log)
             except subprocess.CalledProcessError as e:
                 raise e
+
+        # Read previous .meta entries
+        if (os.path.exists(metafile)):
+            with file(metafile, 'r') as mf:
+                meta = eval(mf.read())
+        else:
+            meta = {'_header' : '{ size : [lf, vertices, elements] }' }
+
+        # Read no. vertices/elements from Gmsh log and store in .meta file
+        with file(logfile, 'r') as log:
+            re_match = re_gmsh_info.search(log.read())
+            meta[size] = [ 1. / size, re_match.group(1), re_match.group(2) ]
+            with file(metafile, 'w') as mf:
+                pprint.pprint(meta, mf)
 
 
 if __name__ == '__main__':
