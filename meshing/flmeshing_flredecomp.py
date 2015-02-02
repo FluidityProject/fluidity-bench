@@ -1,8 +1,14 @@
 from flmeshing import FLMeshing
 import os
 import subprocess
+import re
 
-regions = ['flredecomp']
+regions = ['flredecomp', 'flredecomp::gmsh_read', 'flredecomp::state', 'flredecomp::zoltan']
+
+re_flredecomp = re.compile(r"\/flredecomp\s+::\s+([0-9\.]+)")
+re_io_gmsh = re.compile(r"I\/O\s+::\s+Gmsh\s+::\s+([0-9\.]+)")
+re_flrd_state = re.compile(r"\/flredecomp\s+::\s+Populate State\s+::\s+([0-9\.]+)")
+re_flrd_zoltan = re.compile(r"\/flredecomp\s+::\s+zoltan\_drive\s+::\s+([0-9\.]+)")
 
 class FLRedecompMeshing(FLMeshing):
     benchmark = 'flredecomp'
@@ -27,6 +33,15 @@ class FLRedecompMeshing(FLMeshing):
         try:
             # Execute flredecomp in the generated .flml and mesh files
             subprocess.check_call(cmd)
+
+            # Read performance result from log file
+            with file("flredecomp.log-0", "r") as lf:
+                log = lf.read()
+                self.register_timing("flredecomp", float(re_flredecomp.search(log).group(1)))
+                self.register_timing("flredecomp::gmsh_read", float(re_io_gmsh.search(log).group(1)))
+                self.register_timing("flredecomp::state", float(re_flrd_state.search(log).group(1)))
+                self.register_timing("flredecomp::zoltan", float(re_flrd_zoltan.search(log).group(1)))
+
         except subprocess.CalledProcessError as e:
             print "Warning: flredecomp failed with size %f" % size
 
