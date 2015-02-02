@@ -90,6 +90,24 @@ class FLMeshing(Benchmark):
             with file(metafile, 'w') as mf:
                 pprint.pprint(meta, mf)
 
+    def run_application(self, nprocs, binary, args, logfile=None, regexes=None):
+        cmd = ['mpiexec', '-n', '%d'%nprocs]
+        cmd += [os.environ['FLUIDITY_DIR'] + "/bin/" + binary]
+        cmd += args
+
+        try:
+            # Execute given binary on all processes
+            subprocess.check_call(cmd)
+
+            # Parse log file and extract profiler timings via given regexes
+            if (logfile is not None and regexes is not None):
+                with file(logfile, "r") as lf:
+                    log = lf.read()
+                    for key, regex in regexes.iteritems():
+                        self.register_timing(key, float(regex.search(log).group(1)))
+
+        except subprocess.CalledProcessError as e:
+            print "Warning: %s failed with arguments %s" % (binary, args)
 
 if __name__ == '__main__':
     p = parser(description="Plot results for Fluidity meshing benchmark")
