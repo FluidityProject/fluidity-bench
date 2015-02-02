@@ -2,6 +2,7 @@ from pybench import Benchmark, parser
 from string import Template
 import re
 import os
+import re
 import subprocess
 import pprint
 
@@ -14,9 +15,11 @@ class FLMeshing(Benchmark):
         args, _ = self.parser().parse_known_args()
         self.meta['dim'] = args.dim
         self.meta['sizes'] = args.size
+        self.meta['nprocs'] = args.nprocs
         self.series = {'dim' : self.meta['dim']}
         self.params = [('dim', [self.meta['dim']]),
                        ('size', self.meta['sizes']),
+                       ('nprocs', self.meta['nprocs']),
                        ('force', [args.force])]
 
         # Basic filehandling info for Fluidity projects
@@ -29,6 +32,8 @@ class FLMeshing(Benchmark):
                        help='Dimension of test mesh (default 2D)')
         p.add_argument('-m', '--size', type=int, nargs='+',
                        help='Relative mesh sizes to use: lf = 1 / size')
+        p.add_argument('-np', '--nprocs', type=int, nargs='+',
+                       help='Number of procs to run on')
         p.add_argument('-f', '--force', action='store_true', dest='force', default=False,
                        help='Force remeshing before running benchmark')
         return p
@@ -40,6 +45,13 @@ class FLMeshing(Benchmark):
         with file(newfile, "w") as nf:
             with file(template, "r") as tf:
                 nf.write(re.sub(key, value, tf.read()))
+
+    def create_flml(self, dim, size):
+        template = self.filename(name='sim', dim=dim, size='template', end='.flml')
+        flmlfile = self.filename(name='sim', dim=dim, size=size, end='.flml')
+        meshfile = self.filename(name='box', dim=dim, size=size, end='')
+
+        self.create_file_from_template(template, flmlfile, r"\$MESHNAME\$", meshfile)
 
     def create_mesh(self, dim, size, force=False):
         template = self.filename(name='box', dim=dim, size='template', end='.geo')
