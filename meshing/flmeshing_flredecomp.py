@@ -21,8 +21,13 @@ class FLRedecompMeshing(FLMeshing):
     method = 'flredecomp'
     profileregions = flrd_regexes.keys() + fluidity_regexes.keys()
 
-    def flredecomp(self, dim=2, size=5, nprocs=2, force=False):
-        self.create_mesh(dim, size, force)
+    def __init__(self, **kwargs):
+        super(FLRedecompMeshing, self).__init__(**kwargs)
+        args, _ = self.parser().parse_known_args()
+        self._force = args.force
+
+    def flredecomp(self, dim=2, size=5, nprocs=2):
+        self.create_mesh(dim, size, self._force)
         self.create_flml(dim, size)
 
         # First run flredecomp

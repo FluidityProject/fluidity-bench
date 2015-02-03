@@ -19,12 +19,12 @@ class FLMeshing(Benchmark):
         self.series = {'dim' : self.meta['dim']}
         self.params = [('dim', [self.meta['dim']]),
                        ('size', self.meta['sizes']),
-                       ('nprocs', self.meta['nprocs']),
-                       ('force', [args.force])]
+                       ('nprocs', self.meta['nprocs'])]
 
         # Basic filehandling info for Fluidity projects
         self._meshdir = { 2 : 'void-2d', 3 : 'void-3d' }
         self._fname = Template('${dir}/${name}_${dim}d_${size}${end}')
+        self._archer = args.archer
 
     def parser(self, **kwargs):
         p = super(FLMeshing, self).parser(**kwargs)
@@ -36,6 +36,8 @@ class FLMeshing(Benchmark):
                        help='Number of procs to run on')
         p.add_argument('-f', '--force', action='store_true', dest='force', default=False,
                        help='Force remeshing before running benchmark')
+        p.add_argument('-a', '--archer', action='store_true', dest='archer', default=False,
+                       help='Use aprun when running on Archer')
         return p
 
     def filename(self, name='box', dim=2, size=5, end=''):
@@ -91,7 +93,11 @@ class FLMeshing(Benchmark):
                 pprint.pprint(meta, mf)
 
     def run_application(self, nprocs, binary, args, logfile=None, regexes=None):
-        cmd = ['mpiexec', '-n', '%d'%nprocs]
+        if self._archer:
+            pes_per_node = 24 if nprocs > 24 else nprocs
+            cmd = ['aprun', '-n', '%d'%nprocs, '-N', '%d'%pes_per_node, '-d', '1', '-j', '1']
+        else:
+            cmd = ['mpiexec', '-n', '%d'%nprocs]
         cmd += [os.environ['FLUIDITY_DIR'] + "/bin/" + binary]
         cmd += args
 
