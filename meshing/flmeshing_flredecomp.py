@@ -1,6 +1,4 @@
 from flmeshing import FLMeshing
-import os
-import subprocess
 import re
 
 flrd_regexes = {'flredecomp' : re.compile(r"\/flredecomp\s+::\s+([0-9\.]+)"),
