@@ -110,7 +110,11 @@ class FLMeshing(Benchmark):
                 with file(logfile, "r") as lf:
                     log = lf.read()
                     for key, regex in regexes.iteritems():
-                        self.register_timing(key, float(regex.search(log).group(1)))
+                        try:
+                            self.register_timing(key, float(regex.search(log).group(1)))
+                        except AttributeError as e:
+                            print "WARNING: Could not find match for regex:", regex.pattern
+
 
         except subprocess.CalledProcessError as e:
             print "Warning: %s failed with arguments %s" % (binary, args)
