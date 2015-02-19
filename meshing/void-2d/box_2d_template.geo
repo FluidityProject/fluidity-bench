@@ -1,12 +1,15 @@
 lf = $INSERT_LF$;
-mc = 0.01;
+h = 10;
+l = 2*h;
+r = h*0.1;
+el = lf*h;
 
 // inner circle:
-Point(1) = {0.2,0.2,0,mc};
-Point(2) = {0.25,0.2,0,lf};
-Point(3) = {0.2,0.25,0,lf};
-Point(4) = {0.15,0.2,0,lf};
-Point(5) = {0.2,0.15,0,lf};
+Point(1) = {0.25*l,0.5*h,0,el};
+Point(2) = {0.25*l+r,0.5*h,0,el};
+Point(3) = {0.25*l,0.5*h+r,0,el};
+Point(4) = {0.25*l-r,0.5*h,0,el};
+Point(5) = {0.25*l,0.5*h-r,0,el};
 Circle(1) = {2,1,3};
 Line(101) = {1,2};
 Circle(2) = {3,1,4};
@@ -22,10 +25,10 @@ Line Loop(4) = {104, 4, -101};
 Line Loop(105) = {2, 3, 4, 1};
 
 // box points:
-Point (6) = {0, 0, 0, lf};
-Point (7) = {2.2, 0, 0, lf};
-Point (8) = {2.2, 0.41, 0, lf};
-Point (9) = {0, 0.41, 0, lf};
+Point (6) = {0, 0, 0, el};
+Point (7) = {l, 0, 0, el};
+Point (8) = {l, h, 0, el};
+Point (9) = {0, h, 0, el};
 Line (5) = {9, 6};
 Line (6) = {9, 8};
 Line (7) = {6, 7};

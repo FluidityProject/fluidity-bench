@@ -1,19 +1,24 @@
 lf = $INSERT_LF$;
+h = 10;
+l = 2*h;
+w = h;
+r = h*0.1;
+el = lf*h;
 
 // void square:
 // Create square cylinder:
-Point(101) = {0.45,0.15,0,lf};
-Point(102) = {0.45,0.25,0,lf};
-Point(103) = {0.55,0.25,0,lf};
-Point(104) = {0.55,0.15,0,lf};
+Point(101) = {0.25*l-r,0.5*h-r,0,el};
+Point(102) = {0.25*l-r,0.5*h+r,0,el};
+Point(103) = {0.25*l+r,0.5*h+r,0,el};
+Point(104) = {0.25*l+r,0.5*h-r,0,el};
 Line(101) = {101,102};
 Line(102) = {102,103};
 Line(103) = {103,104};
 Line(104) = {104,101};
-Point(111) = {0.45,0.15,0.4,lf};
-Point(112) = {0.45,0.25,0.4,lf};
-Point(113) = {0.55,0.25,0.4,lf};
-Point(114) = {0.55,0.15,0.4,lf};
+Point(111) = {0.25*l-r,0.5*h-r,w,el};
+Point(112) = {0.25*l-r,0.5*h+r,w,el};
+Point(113) = {0.25*l+r,0.5*h+r,w,el};
+Point(114) = {0.25*l+r,0.5*h-r,w,el};
 Line(111) = {111,112};
 Line(112) = {112,113};
 Line(113) = {113,114};
@@ -38,10 +43,10 @@ Plane Surface(132) = {131};
 
 // box:
 // front face:
-Point(1) = {0,0,0,lf};
-Point(2) = {0,0,0.4,lf};
-Point(3) = {0,0.4,0.4,lf};
-Point(4) = {0,0.4,0,lf};
+Point(1) = {0,0,0,el};
+Point(2) = {0,0,w,el};
+Point(3) = {0,h,w,el};
+Point(4) = {0,h,0,el};
 // lines:
 Line(1) = {1,2};
 Line(2) = {2,3};
@@ -50,10 +55,10 @@ Line(4) = {4,1};
 Line Loop(1) = {2, 3, 4, 1};
 Plane Surface(1) = {1};
 // back face:
-Point(11) = {1,0,0,lf};
-Point(12) = {1,0,0.4,lf};
-Point(13) = {1,0.4,0.4,lf};
-Point(14) = {1,0.4,0,lf};
+Point(11) = {l,0,0,el};
+Point(12) = {l,0,w,el};
+Point(13) = {l,h,w,el};
+Point(14) = {l,h,0,el};
 // lines:
 Line(11) = {11,12};
 Line(12) = {12,13};
