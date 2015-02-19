@@ -7,8 +7,8 @@ import subprocess
 import pprint
 
 class FLMeshing(Benchmark):
-    warmups = 0
-    repeats = 1
+    warmups = 1
+    repeats = 3
 
     def __init__(self, **kwargs):
         super(FLMeshing, self).__init__(**kwargs)
@@ -95,29 +95,27 @@ class FLMeshing(Benchmark):
     def run_application(self, nprocs, binary, args, logfile=None, regexes=None):
         if self._archer:
             pes_per_node = 24 if nprocs > 24 else nprocs
-            cmd = ['aprun', '-n', '%d'%nprocs, '-N', '%d'%pes_per_node, '-d', '1', '-j', '1']
+            cmd = ['aprun', '-n %d'%nprocs, '-N %d'%pes_per_node, '-d 1', '-j 1']
         else:
             cmd = ['mpiexec', '-n', '%d'%nprocs]
+
         cmd += [os.environ['FLUIDITY_DIR'] + "/bin/" + binary]
         cmd += args
 
         try:
-            # Execute given binary on all processes
             subprocess.check_call(cmd)
-
-            # Parse log file and extract profiler timings via given regexes
-            if (logfile is not None and regexes is not None):
-                with file(logfile, "r") as lf:
-                    log = lf.read()
-                    for key, regex in regexes.iteritems():
-                        try:
-                            self.register_timing(key, float(regex.search(log).group(1)))
-                        except AttributeError as e:
-                            print "WARNING: Could not find match for regex:", regex.pattern
-
-
         except subprocess.CalledProcessError as e:
-            print "Warning: %s failed with arguments %s" % (binary, args)
+            raise e
+
+        # Parse log file and extract profiler timings via given regexes
+        if (logfile is not None and regexes is not None):
+            with file(logfile, "r") as lf:
+                log = lf.read()
+                for key, regex in regexes.iteritems():
+                    try:
+                        self.register_timing(key, float(regex.search(log).group(1)))
+                    except AttributeError as e:
+                        print "WARNING: Could not find match for regex:", regex.pattern
 
 if __name__ == '__main__':
     p = parser(description="Plot results for Fluidity meshing benchmark")

@@ -31,7 +31,7 @@ class FLRedecompMeshing(FLMeshing):
         # First run flredecomp
         infile = self.filename(name='sim', dim=dim, size=size, end='')
         outfile = self.filename(name='sim', dim=dim, size=size, end='_flrd')
-        args = ['-i', '1', '-o', '%d' % nprocs, '-l', '-v', '-p', infile, outfile]
+        args = ['-i 1', '-o %d' % nprocs, '-l', '-v', '-p', infile, outfile]
         self.run_application(nprocs, 'flredecomp', args, logfile='flredecomp.log-0', regexes=flrd_regexes)
 
         # Then run Fluidity to benchmark initial setup
