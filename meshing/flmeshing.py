@@ -16,10 +16,10 @@ class FLMeshing(Benchmark):
         self.meta['dim'] = args.dim
         self.meta['sizes'] = args.size
         self.meta['nprocs'] = args.nprocs
-        self.series = {'dim' : self.meta['dim']}
+        self.series = {'dim': self.meta['dim'],
+                       'nprocs': self.meta['nprocs']}
         self.params = [('dim', [self.meta['dim']]),
-                       ('size', self.meta['sizes']),
-                       ('nprocs', self.meta['nprocs'])]
+                       ('size', self.meta['sizes'])]
 
         # Basic filehandling info for Fluidity projects
         self._meshdir = { 2 : 'void-2d', 3 : 'void-3d' }
@@ -32,7 +32,7 @@ class FLMeshing(Benchmark):
                        help='Dimension of test mesh (default 2D)')
         p.add_argument('-m', '--size', type=int, nargs='+',
                        help='Relative mesh sizes to use: lf = 1 / size')
-        p.add_argument('-np', '--nprocs', type=int, nargs='+',
+        p.add_argument('-np', '--nprocs', type=int,
                        help='Number of procs to run on')
         p.add_argument('-f', '--force', action='store_true', dest='force', default=False,
                        help='Force remeshing before running benchmark')
@@ -121,3 +121,43 @@ if __name__ == '__main__':
     p = parser(description="Plot results for Fluidity meshing benchmark")
     p.add_argument('--dim', type=int, default=2,
                    help='Dimension of benchmark mesh (default=2)')
+    p.add_argument('-m', '--size', type=int, nargs='+',
+                   help='mesh sizes to plot')
+    args = p.parse_args()
+
+    flm_plex = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
+    flm_flrd = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
+
+    # Get mesh sizes from .meta file
+    metafile = flm_plex.filename(name='flmeshing', dim=args.dim, size='', end='.meta')
+    with file(metafile, 'r') as mf:
+        meshmeta = eval(mf.read())
+
+    # Let's see what we want to compare...
+    flrd_regions = ['flredecomp', 'flredecomp::gmsh_read', 'flredecomp::state', 'flredecomp::zoltan']
+    fluidity_regions = ['fluidity', 'fluidity::gmsh_read' ,'fluidity::state']
+    fldmplex_regions = ['fluidity', 'fluidity::state', 'dmplex', 'dmplex::create', 'dmplex::distribute']
+
+    groups = []
+    aggregate = {'flredecomp-total': ['flredecomp', 'fluidity::state']}
+
+    if args.weak:
+        meshsizes = [meshmeta[int(m)][2] for m in args.size]
+
+        regions = ['flredecomp', 'fluidity::state']
+        flm_flrd.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
+                         filename='flredecomp')
+        flm_flrd.plot(xaxis='size', wscale=0.7, format='pdf', kinds='plot',
+               regions=regions, groups=groups,
+               xlabel='Mesh size (cells)', xticklabels=meshsizes,
+               figname='FLM-Flrd', legend={'loc': 'upper left'},
+               title='Fluidity-flredecomp startup: dim=%(dim)d')
+
+        regions = ['fluidity::state', 'dmplex']
+        flm_plex.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
+                         filename='fldmplex')
+        flm_plex.plot(xaxis='size', wscale=0.7, format='pdf', kinds='plot',
+               regions=regions, groups=groups,
+               xlabel='Mesh size (cells)', xticklabels=meshsizes,
+               figname='FLM-DMPlex', legend={'loc': 'upper left'},
+               title='Fluidity-DMPlex startup: dim=%(dim)d')
