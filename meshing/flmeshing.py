@@ -117,46 +117,66 @@ class FLMeshing(Benchmark):
                         print "WARNING: Could not find match for regex:", regex.pattern
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    import numpy as np
+
     p = parser(description="Plot results for Fluidity meshing benchmark")
     p.add_argument('--dim', type=int, default=2,
                    help='Dimension of benchmark mesh (default=2)')
     p.add_argument('-m', '--size', type=int, nargs='+',
                    help='mesh sizes to plot')
     args = p.parse_args()
-
-    flm_plex = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
-    flm_flrd = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
+    flm = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
 
     # Get mesh sizes from .meta file
-    metafile = flm_plex.filename(name='flmeshing', dim=args.dim, size='', end='.meta')
+    metafile = flm.filename(name='flmeshing', dim=args.dim, size='', end='.meta')
     with file(metafile, 'r') as mf:
         meshmeta = eval(mf.read())
 
-    # Let's see what we want to compare...
-    flrd_regions = ['flredecomp', 'flredecomp::gmsh_read', 'flredecomp::state', 'flredecomp::zoltan']
-    fluidity_regions = ['fluidity', 'fluidity::gmsh_read' ,'fluidity::state']
-    fldmplex_regions = ['fluidity', 'fluidity::state', 'dmplex', 'dmplex::create', 'dmplex::distribute']
+    # Note: Aggregation for param lists is currently broken in pybench
+    aggregate = {'Preporcess Startup': ['flredecomp', 'fluidity::state']}
 
-    groups = []
-    aggregate = {'flredecomp-total': ['flredecomp', 'fluidity::state']}
+    # Create a figure
+    figsize = (9, 6)
+    fig = plt.figure("FluidityStartup.pdf", figsize=figsize, dpi=300)
+    ax = fig.add_subplot(111)
+    # Precompute colormap
+    cmap = mpl.cm.get_cmap("Set1")
+    numColors = 10
+    colors = [cmap(i) for i in np.linspace(0, 0.9, numColors)]
+
 
     if args.weak:
         meshsizes = [meshmeta[int(m)][2] for m in args.size]
+        def add_plot_line(region, label, color=colors[0], linestyle='solid'):
+            params = {'dim': args.dim}
+            groups = {'np': args.weak}
+            regions = [region]
+            style = {region: {'linestyle': linestyle, 'color': color}}
+            labels = {(args.weak[0],): label}
+            flm.subplot(ax, xaxis='size', kind='plot', xvals=args.size,
+                        xlabel='Mesh Size', xticklabels=meshsizes,
+                        title='Fluidity Startup Cost', axis='tight',
+                        regions=regions, groups=groups, params=params,
+                        plotstyle=style, labels=labels)
 
-        regions = ['flredecomp', 'fluidity::state']
-        flm_flrd.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
-                         filename='flredecomp')
-        flm_flrd.plot(xaxis='size', wscale=0.7, format='pdf', kinds='plot',
-               regions=regions, groups=groups,
-               xlabel='Mesh size (cells)', xticklabels=meshsizes,
-               figname='FLM-Flrd', legend={'loc': 'upper left'},
-               title='Fluidity-flredecomp startup: dim=%(dim)d')
+        # Flredecomp results
+        flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
+                           filename='flredecomp')
+        add_plot_line('flredecomp', 'Preprocess',
+                      color=colors[0], linestyle='dashed')
+        add_plot_line('fluidity::state', 'Startup-Preproc',
+                      color=colors[1], linestyle='dashed')
 
-        regions = ['fluidity::state', 'dmplex']
-        flm_plex.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
-                         filename='fldmplex')
-        flm_plex.plot(xaxis='size', wscale=0.7, format='pdf', kinds='plot',
-               regions=regions, groups=groups,
-               xlabel='Mesh size (cells)', xticklabels=meshsizes,
-               figname='FLM-DMPlex', legend={'loc': 'upper left'},
-               title='Fluidity-DMPlex startup: dim=%(dim)d')
+        # DMPlex results
+        flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
+                           filename='fldmplex')
+        add_plot_line('fluidity::state', 'Startup-DMPlex', color=colors[1])
+
+        fname = "StartupWeak_plot_dim%d.pdf" % (args.dim)
+
+    fpath = os.path.join(args.plotdir, fname)
+    fig.savefig(os.path.join(args.plotdir, fname),
+                orientation='landscape', format="pdf",
+                transparent=True, bbox_inches='tight')
