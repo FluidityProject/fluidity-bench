@@ -7,7 +7,7 @@ import subprocess
 import pprint
 
 class FLMeshing(Benchmark):
-    warmups = 1
+    warmups = 0
     repeats = 3
 
     def __init__(self, **kwargs):
@@ -18,8 +18,7 @@ class FLMeshing(Benchmark):
         self.meta['nprocs'] = args.nprocs
         self.series = {'dim': self.meta['dim'],
                        'nprocs': self.meta['nprocs']}
-        self.params = [('dim', [self.meta['dim']]),
-                       ('size', self.meta['sizes'])]
+        self.params = [('size', self.meta['sizes'])]
 
         # Basic filehandling info for Fluidity projects
         self._meshdir = { 2 : 'void-2d', 3 : 'void-3d' }
@@ -66,11 +65,11 @@ class FLMeshing(Benchmark):
         if not force and os.path.exists(meshfile):
             return
 
-        # Create .go file, with lf = 1 / size
+        # Create .geo file, with lf = 1 / size
         self.create_file_from_template(template, geofile, r"\$INSERT_LF\$", r"%.6f" % float(1./size))
 
         # Run Gmsh on the generated .geo file
-        cmd = ['gmsh', '-%d' % (dim), '-o', meshfile, geofile]
+        cmd = ['gmsh', '-bin', '-%d' % (dim), '-o', meshfile, geofile]
         print "FLMeshing: Generating meshfile %s from %s" % (meshfile, geofile)
         with file(logfile, "w") as log:
             try:
