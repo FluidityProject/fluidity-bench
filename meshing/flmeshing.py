@@ -216,3 +216,63 @@ if __name__ == '__main__':
         save_fig(fig_part, fname)
         fname = "GmshWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
         save_fig(fig_io, fname)
+
+
+    if args.parallel:
+        def add_plot_line(ax, region, label, color, linestyle='solid'):
+            regions = [region]
+            params = {'dim': args.dim, 'np': args.parallel}
+            groups = {'size': args.size}
+            style = {region: {'linestyle': linestyle, 'color': color}}
+            labels = {(args.size[0],): label}
+            flm.subplot(ax, xaxis='np', kind='semilogx', xvals=args.parallel,
+                        xlabel='Number of Processes', xticklabels=args.parallel,
+                        title='Fluidity Startup Cost', axis='tight',
+                        regions=regions, groups=groups, params=params,
+                        plotstyle=style, labels=labels)
+
+        fig_start, ax_start = create_figure("FluidityStartup.pdf")
+        fig_part, ax_part = create_figure("FluidityDistribute.pdf")
+        fig_io, ax_io = create_figure("FluidityIO.pdf")
+
+        # Flredecomp results
+        flm.combine_series([('dim', [args.dim]), ('nprocs', args.parallel)],
+                           filename='flredecomp')
+        aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
+        flm.aggregate_timings(aggregate)
+
+        add_plot_line(ax_start, 'flredecomp', 'Preprocess',
+                      color=colors[0], linestyle='dashed')
+        add_plot_line(ax_start, 'fluidity::state', 'Startup-Preproc',
+                      color=colors[0], linestyle='dotted')
+        add_plot_line(ax_start, 'startup::total', 'Startup-Total',
+                      color=colors[0], linestyle='solid')
+
+        add_plot_line(ax_part, 'flredecomp::zoltan', 'Fluidity-Zoltan',
+                      color=colors[0])
+
+        add_plot_line(ax_io, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
+                      color=colors[0])
+        add_plot_line(ax_io, 'fluidity::gmsh_read', 'Preproc-Gmsh',
+                      color=colors[0], linestyle='dashed')
+
+
+        # DMPlex results
+        flm.combine_series([('dim', [args.dim]), ('nprocs', args.parallel)],
+                           filename='fldmplex')
+        add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
+                      color=colors[1])
+
+        add_plot_line(ax_part, 'dmplex::distribute', 'DMPlex-Distribute',
+                      color=colors[1])
+        add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
+                      color=colors[1], linestyle='solid')
+
+
+        fname = "StartupStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
+        save_fig(fig_start, fname)
+
+        fname = "DistributeStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
+        save_fig(fig_part, fname)
+        fname = "GmshStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
+        save_fig(fig_io, fname)
