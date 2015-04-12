@@ -11,6 +11,7 @@ class FLMeshing(Benchmark):
     repeats = 3
 
     def __init__(self, **kwargs):
+        kwargs['rank'] = 0
         super(FLMeshing, self).__init__(**kwargs)
         args, _ = self.parser().parse_known_args()
         self.meta['dim'] = args.dim
