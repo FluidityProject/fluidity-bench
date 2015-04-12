@@ -117,6 +117,25 @@ class FLMeshing(Benchmark):
                     except AttributeError as e:
                         print "WARNING: Could not find match for regex:", regex.pattern
 
+    # Note: Aggregation for param lists is currently broken in pybench
+    def aggregate_timings(self, aggregate):
+        for target, regions in aggregate.items():
+            for k, timing in self.result['timings'].iteritems():
+                timing[target] = sum(timing[region] for region in regions)
+
+def create_figure(name, figsize=(9, 6)):
+    fig = plt.figure(name, figsize=figsize, dpi=300)
+    ax = fig.add_subplot(111)
+    return fig, ax
+
+
+def save_fig(fig, fname):
+    fpath = os.path.join(args.plotdir, fname)
+    fig.savefig(os.path.join(args.plotdir, fname),
+                orientation='landscape', format="pdf",
+                transparent=True, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -135,22 +154,14 @@ if __name__ == '__main__':
     with file(metafile, 'r') as mf:
         meshmeta = eval(mf.read())
 
-    # Note: Aggregation for param lists is currently broken in pybench
-    aggregate = {'Preporcess Startup': ['flredecomp', 'fluidity::state']}
-
-    # Create a figure
-    figsize = (9, 6)
-    fig = plt.figure("FluidityStartup.pdf", figsize=figsize, dpi=300)
-    ax = fig.add_subplot(111)
     # Precompute colormap
     cmap = mpl.cm.get_cmap("Set1")
     numColors = 10
     colors = [cmap(i) for i in np.linspace(0, 0.9, numColors)]
 
-
     if args.weak:
         meshsizes = [meshmeta[int(m)][2] for m in args.size]
-        def add_plot_line(region, label, color=colors[0], linestyle='solid'):
+        def add_plot_line(ax, region, label, color=colors[0], linestyle='solid'):
             params = {'dim': args.dim}
             groups = {'np': args.weak}
             regions = [region]
@@ -162,22 +173,46 @@ if __name__ == '__main__':
                         regions=regions, groups=groups, params=params,
                         plotstyle=style, labels=labels)
 
+        fig_start, ax_start = create_figure("FluidityStartup.pdf")
+        fig_part, ax_part = create_figure("FluidityDistribute.pdf")
+        fig_io, ax_io = create_figure("FluidityIO.pdf")
+
         # Flredecomp results
         flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
                            filename='flredecomp')
-        add_plot_line('flredecomp', 'Preprocess',
+        aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
+        flm.aggregate_timings(aggregate)
+
+        add_plot_line(ax_start, 'flredecomp', 'Preprocess',
                       color=colors[0], linestyle='dashed')
-        add_plot_line('fluidity::state', 'Startup-Preproc',
-                      color=colors[1], linestyle='dashed')
+        add_plot_line(ax_start, 'fluidity::state', 'Startup-Preproc',
+                      color=colors[0], linestyle='dotted')
+        add_plot_line(ax_start, 'startup::total', 'Startup-Total',
+                      color=colors[0], linestyle='solid')
+
+        add_plot_line(ax_part, 'flredecomp::zoltan', 'Fluidity-Zoltan',
+                      color=colors[0])
+
+        add_plot_line(ax_io, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
+                      color=colors[0])
+        add_plot_line(ax_io, 'fluidity::gmsh_read', 'Preproc-Gmsh',
+                      color=colors[0], linestyle='dashed')
 
         # DMPlex results
         flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
                            filename='fldmplex')
-        add_plot_line('fluidity::state', 'Startup-DMPlex', color=colors[1])
+        add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
+                      color=colors[1])
 
-        fname = "StartupWeak_plot_dim%d.pdf" % (args.dim)
+        add_plot_line(ax_part, 'dmplex::distribute', 'DMPlex-Distribute',
+                      color=colors[1])
+        add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
+                      color=colors[1], linestyle='solid')
 
-    fpath = os.path.join(args.plotdir, fname)
-    fig.savefig(os.path.join(args.plotdir, fname),
-                orientation='landscape', format="pdf",
-                transparent=True, bbox_inches='tight')
+
+        fname = "StartupWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
+        save_fig(fig_start, fname)
+        fname = "DistributeWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
+        save_fig(fig_part, fname)
+        fname = "GmshWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
+        save_fig(fig_io, fname)
