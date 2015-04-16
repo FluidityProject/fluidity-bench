@@ -20,7 +20,7 @@ class FLDMPlexMeshing(FLMeshing):
         args, _ = self.parser().parse_known_args()
         self._force = args.force
 
-    def fldmplex(self, dim=2, size=5, nprocs=2):
+    def fldmplex(self, dim=2, size=5, nprocs=2, ascii=False):
         self.create_mesh(dim, size, self._force)
         self.create_flml(dim, size)
 

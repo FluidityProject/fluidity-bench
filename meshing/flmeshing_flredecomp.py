@@ -24,7 +24,7 @@ class FLRedecompMeshing(FLMeshing):
         args, _ = self.parser().parse_known_args()
         self._force = args.force
 
-    def flredecomp(self, dim=2, size=5, nprocs=2):
+    def flredecomp(self, dim=2, size=5, nprocs=2, ascii=False):
         self.create_mesh(dim, size, self._force)
         self.create_flml(dim, size)
 

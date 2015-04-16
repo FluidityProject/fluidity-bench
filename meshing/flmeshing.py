@@ -17,9 +17,12 @@ class FLMeshing(Benchmark):
         self.meta['dim'] = args.dim
         self.meta['sizes'] = args.size
         self.meta['nprocs'] = args.nprocs
+        self.meta['ascii'] = args.ascii
+
         self.series = {'dim': self.meta['dim'],
                        'nprocs': self.meta['nprocs']}
-        self.params = [('size', self.meta['sizes'])]
+        self.params = [('size', self.meta['sizes']),
+                       ('ascii', [self.meta['ascii']])]
 
         # Basic filehandling info for Fluidity projects
         self._meshdir = { 2 : 'void-2d', 3 : 'void-3d' }
@@ -36,8 +39,10 @@ class FLMeshing(Benchmark):
                        help='Number of procs to run on')
         p.add_argument('-f', '--force', action='store_true', dest='force', default=False,
                        help='Force remeshing before running benchmark')
-        p.add_argument('-a', '--archer', action='store_true', dest='archer', default=False,
+        p.add_argument('--archer', action='store_true', dest='archer', default=False,
                        help='Use aprun when running on Archer')
+        p.add_argument('--ascii', action='store_true', dest='ascii', default=False,
+                       help='Use meshes in ASCII Gmsh format')
         return p
 
     def filename(self, name='box', dim=2, size=5, end=''):
@@ -51,16 +56,22 @@ class FLMeshing(Benchmark):
     def create_flml(self, dim, size):
         template = self.filename(name='sim', dim=dim, size='template', end='.flml')
         flmlfile = self.filename(name='sim', dim=dim, size=size, end='.flml')
-        meshfile = self.filename(name='box', dim=dim, size=size, end='')
+        if self.meta['ascii']:
+            meshfile = self.filename(name='box', dim=dim, size=size, end='_ascii')
+        else:
+            meshfile = self.filename(name='box', dim=dim, size=size, end='')
 
         self.create_file_from_template(template, flmlfile, r"\$MESHNAME\$", meshfile)
 
     def create_mesh(self, dim, size, force=False):
         template = self.filename(name='box', dim=dim, size='template', end='.geo')
         geofile = self.filename(name='box', dim=dim, size=size, end='.geo')
-        meshfile = self.filename(name='box', dim=dim, size=size, end='.msh')
         logfile = self.filename(name='flmeshing', dim=dim, size='', end='.log')
         metafile = self.filename(name='flmeshing', dim=dim, size='', end='.meta')
+        if self.meta['ascii']:
+            meshfile = self.filename(name='box', dim=dim, size=size, end='_ascii.msh')
+        else:
+            meshfile = self.filename(name='box', dim=dim, size=size, end='.msh')
         re_gmsh_info = re.compile(r"Info\s+:\s+([0-9]+)\s+vertices\s+([0-9]+)\s+elements")
 
         if not force and os.path.exists(meshfile):
@@ -70,7 +81,11 @@ class FLMeshing(Benchmark):
         self.create_file_from_template(template, geofile, r"\$INSERT_LF\$", r"%.6f" % float(1./size))
 
         # Run Gmsh on the generated .geo file
-        cmd = ['gmsh', '-bin', '-%d' % (dim), '-o', meshfile, geofile]
+        cmd = ['gmsh', '-%d' % (dim), '-o', meshfile, geofile]
+        if self.meta['ascii']:
+            cmd = ['gmsh', '-%d' % (dim), '-o', meshfile, geofile]
+        else:
+            cmd = ['gmsh', '-bin', '-%d' % (dim), '-o', meshfile, geofile]
         print "FLMeshing: Generating meshfile %s from %s" % (meshfile, geofile)
         with file(logfile, "w") as log:
             try:
@@ -146,6 +161,8 @@ if __name__ == '__main__':
                    help='Dimension of benchmark mesh (default=2)')
     p.add_argument('-m', '--size', type=int, nargs='+',
                    help='mesh sizes to plot')
+    p.add_argument('--ascii', action='store_true', dest='ascii', default=False,
+                   help='Use meshes in ASCII Gmsh format')
     args = p.parse_args()
     flm = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
 
@@ -162,7 +179,7 @@ if __name__ == '__main__':
     if args.weak:
         meshsizes = [meshmeta[int(m)][2] for m in args.size]
         def add_plot_line(ax, region, label, color=colors[0], linestyle='solid'):
-            params = {'dim': args.dim}
+            params = {'dim': args.dim, 'ascii': args.ascii}
             groups = {'np': args.weak}
             regions = [region]
             style = {region: {'linestyle': linestyle, 'color': color}}
@@ -209,19 +226,19 @@ if __name__ == '__main__':
         add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
                       color=colors[1], linestyle='solid')
 
-
-        fname = "StartupWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
-        save_fig(fig_start, fname)
-        fname = "DistributeWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
-        save_fig(fig_part, fname)
-        fname = "GmshWeak_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
-        save_fig(fig_io, fname)
+        if args.ascii:
+            fname = "Weak_ascii_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
+        else:
+            fname = "Weak_binary_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
+        save_fig(fig_start, "Startup"+fname)
+        save_fig(fig_part, "Distribute"+fname)
+        save_fig(fig_io, "Gmsh"+fname)
 
 
     if args.parallel:
         def add_plot_line(ax, region, label, color, linestyle='solid'):
             regions = [region]
-            params = {'dim': args.dim, 'np': args.parallel}
+            params = {'dim': args.dim, 'np': args.parallel, 'ascii': args.ascii}
             groups = {'size': args.size}
             style = {region: {'linestyle': linestyle, 'color': color}}
             labels = {(args.size[0],): label}
@@ -268,11 +285,10 @@ if __name__ == '__main__':
         add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
                       color=colors[1], linestyle='solid')
 
-
-        fname = "StartupStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
-        save_fig(fig_start, fname)
-
-        fname = "DistributeStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
-        save_fig(fig_part, fname)
-        fname = "GmshStrong_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
-        save_fig(fig_io, fname)
+        if args.ascii:
+            fname = "Strong_ascii_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
+        else:
+            fname = "Strong_binary_semilogx_dim%d_m%d.pdf" % (args.dim, args.size[0])
+        save_fig(fig_start, "Startup"+fname)
+        save_fig(fig_part, "Distribute"+fname)
+        save_fig(fig_io, "Gmsh"+fname)
