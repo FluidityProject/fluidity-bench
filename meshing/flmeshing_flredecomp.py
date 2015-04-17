@@ -29,9 +29,9 @@ class FLRedecompMeshing(FLMeshing):
         args, _ = self.parser().parse_known_args()
         self._force = args.force
 
-    def flredecomp(self, dim=2, size=5, nprocs=2, timesteps=1, ascii=False):
+    def flredecomp(self, dim=2, size=5, nprocs=2, timesteps=1, reorder=False, ascii=False):
         self.create_mesh(dim, size, self._force)
-        self.create_flml(dim, size, timesteps=timesteps)
+        self.create_flml(dim, size, timesteps=timesteps, reorder=reorder)
 
         # First run flredecomp
         infile = self.filename(name='sim', dim=dim, size=size, end='')

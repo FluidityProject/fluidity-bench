@@ -18,12 +18,14 @@ class FLMeshing(Benchmark):
         self.meta['sizes'] = args.size
         self.meta['nprocs'] = args.nprocs
         self.meta['timesteps'] = args.timesteps
+        self.meta['reorder'] = args.reorder
         self.meta['ascii'] = args.ascii
 
         self.series = {'dim': self.meta['dim'],
                        'nprocs': self.meta['nprocs']}
         self.params = [('size', self.meta['sizes']),
                        ('timesteps', [self.meta['timesteps']]),
+                       ('reorder', [self.meta['reorder']]),
                        ('ascii', [self.meta['ascii']])]
 
         # Basic filehandling info for Fluidity projects
@@ -47,6 +49,8 @@ class FLMeshing(Benchmark):
                        help='Use aprun when running on Archer')
         p.add_argument('--ascii', action='store_true', dest='ascii', default=False,
                        help='Use meshes in ASCII Gmsh format')
+        p.add_argument('--reorder', action='store_true', dest='reorder', default=False,
+                       help='Apply RCM reordering to DMPlex-generated meshes')
         return p
 
     def filename(self, name='box', dim=2, size=5, end=''):
@@ -60,7 +64,7 @@ class FLMeshing(Benchmark):
                     fbuffer = re.sub(key, value, fbuffer)
                 nf.write(fbuffer)
 
-    def create_flml(self, dim, size, timesteps=1):
+    def create_flml(self, dim, size, timesteps=1, reorder=False):
         template = self.filename(name='sim', dim=dim, size='template', end='.flml')
         flmlfile = self.filename(name='sim', dim=dim, size=size, end='.flml')
         if self.meta['ascii']:
@@ -70,6 +74,7 @@ class FLMeshing(Benchmark):
 
         replacements = {r"\$MESHNAME\$": meshfile,
                         r"\$TIMESTEP\$": str(timesteps)}
+        replacements[r"\$REORDERING\$"] = "<rcm_reordering/>" if reorder else "<no_reordering/>"
         self.create_file_from_template(template, flmlfile, replacements)
 
     def create_mesh(self, dim, size, force=False):

@@ -12,7 +12,9 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="$MESHNAME$">
-        <format name="gmsh"/>
+        <format name="gmsh">
+          $REORDERING$
+        </format>
         <stat>
           <include_in_stat/>
         </stat>
