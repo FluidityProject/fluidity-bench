@@ -20,9 +20,9 @@ class FLDMPlexMeshing(FLMeshing):
         args, _ = self.parser().parse_known_args()
         self._force = args.force
 
-    def fldmplex(self, dim=2, size=5, nprocs=2, ascii=False):
+    def fldmplex(self, dim=2, size=5, nprocs=2, timesteps=1, ascii=False):
         self.create_mesh(dim, size, self._force)
-        self.create_flml(dim, size)
+        self.create_flml(dim, size, timesteps=timesteps)
 
         # Then run Fluidity to benchmark initial setup
         flmlfile = self.filename(name='sim', dim=dim, size=size, end='.flml')

@@ -17,11 +17,13 @@ class FLMeshing(Benchmark):
         self.meta['dim'] = args.dim
         self.meta['sizes'] = args.size
         self.meta['nprocs'] = args.nprocs
+        self.meta['timesteps'] = args.timesteps
         self.meta['ascii'] = args.ascii
 
         self.series = {'dim': self.meta['dim'],
                        'nprocs': self.meta['nprocs']}
         self.params = [('size', self.meta['sizes']),
+                       ('timesteps', [self.meta['timesteps']]),
                        ('ascii', [self.meta['ascii']])]
 
         # Basic filehandling info for Fluidity projects
@@ -37,6 +39,8 @@ class FLMeshing(Benchmark):
                        help='Relative mesh sizes to use: lf = 1 / size')
         p.add_argument('-np', '--nprocs', type=int,
                        help='Number of procs to run on')
+        p.add_argument('-ts', '--timesteps', type=int, default=1,
+                       help='Number of procs to run on')
         p.add_argument('-f', '--force', action='store_true', dest='force', default=False,
                        help='Force remeshing before running benchmark')
         p.add_argument('--archer', action='store_true', dest='archer', default=False,
@@ -48,12 +52,15 @@ class FLMeshing(Benchmark):
     def filename(self, name='box', dim=2, size=5, end=''):
         return self._fname.substitute(dir=self._meshdir[dim], name=name, dim=dim, size=size, end=end)
 
-    def create_file_from_template(self, template, newfile, key, value):
+    def create_file_from_template(self, template, newfile, replacements):
         with file(newfile, "w") as nf:
             with file(template, "r") as tf:
-                nf.write(re.sub(key, value, tf.read()))
+                fbuffer = tf.read()
+                for key, value in replacements.iteritems():
+                    fbuffer = re.sub(key, value, fbuffer)
+                nf.write(fbuffer)
 
-    def create_flml(self, dim, size):
+    def create_flml(self, dim, size, timesteps=1):
         template = self.filename(name='sim', dim=dim, size='template', end='.flml')
         flmlfile = self.filename(name='sim', dim=dim, size=size, end='.flml')
         if self.meta['ascii']:
@@ -61,7 +68,9 @@ class FLMeshing(Benchmark):
         else:
             meshfile = self.filename(name='box', dim=dim, size=size, end='')
 
-        self.create_file_from_template(template, flmlfile, r"\$MESHNAME\$", meshfile)
+        replacements = {r"\$MESHNAME\$": meshfile,
+                        r"\$TIMESTEP\$": str(timesteps)}
+        self.create_file_from_template(template, flmlfile, replacements)
 
     def create_mesh(self, dim, size, force=False):
         template = self.filename(name='box', dim=dim, size='template', end='.geo')
@@ -78,7 +87,8 @@ class FLMeshing(Benchmark):
             return
 
         # Create .geo file, with lf = 1 / size
-        self.create_file_from_template(template, geofile, r"\$INSERT_LF\$", r"%.6f" % float(1./size))
+        replacements = {r"\$INSERT_LF\$": r"%.6f" % float(1./size)}
+        self.create_file_from_template(template, geofile, replacements)
 
         # Run Gmsh on the generated .geo file
         cmd = ['gmsh', '-%d' % (dim), '-o', meshfile, geofile]
