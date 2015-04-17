@@ -6,6 +6,10 @@ fluidity_regexes = {'fluidity' : re.compile(r"\/fluidity\s+::\s+([0-9\.]+)"),
                     'dmplex': re.compile(r"I\/O\s+::\s+DMPlex\s+::\s+([0-9\.]+)"),
                     'dmplex::create': re.compile(r"I\/O\s+::\s+DMPlex\s+::\s+Create\s+::\s+([0-9\.]+)"),
                     'dmplex::distribute': re.compile(r"I\/O\s+::\s+DMPlex\s+::\s+Distribute\s+::\s+([0-9\.]+)"),
+                    'fluidity::pressure::assembly' : re.compile(r"\/material_phase\[0\]\/scalar\_field::Pressure::assembly\s+::\s+([0-9\.]+)"),
+                    'fluidity::pressure::solve' : re.compile(r"\/material_phase\[0\]\/scalar\_field::Pressure::solve\s+::\s+([0-9\.]+)"),
+                    'fluidity::velocity::assembly' : re.compile(r"\/material_phase\[0\]\/vector\_field::Velocity::assembly\s+::\s+([0-9\.]+)"),
+                    'fluidity::velocity::solve' : re.compile(r"\/material_phase\[0\]\/vector\_field::Velocity::solve\s+::\s+([0-9\.]+)"),
                     }
 
 class FLDMPlexMeshing(FLMeshing):

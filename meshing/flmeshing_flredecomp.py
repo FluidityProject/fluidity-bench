@@ -5,11 +5,16 @@ flrd_regexes = {'flredecomp' : re.compile(r"\/flredecomp\s+::\s+([0-9\.]+)"),
                 'flredecomp::gmsh_read' : re.compile(r"I\/O\s+::\s+Gmsh\s+::\s+([0-9\.]+)"),
                 'flredecomp::state' : re.compile(r"\/flredecomp\s+::\s+Populate State\s+::\s+([0-9\.]+)"),
                 'flredecomp::zoltan' : re.compile(r"\/flredecomp\s+::\s+zoltan\_drive\s+::\s+([0-9\.]+)"),
+                'flredecomp::checkpoint' : re.compile(r"\/flredecomp\s+::\s+checkpoint\_simulation\s+::\s+([0-9\.]+)"),
                 }
 
 fluidity_regexes = {'fluidity' : re.compile(r"\/fluidity\s+::\s+([0-9\.]+)"),
                     'fluidity::gmsh_read' : re.compile(r"I\/O\s+::\s+Gmsh\s+::\s+([0-9\.]+)"),
-                    'fluidity::state' : re.compile(r"I\/O\s+::\s+Populate\_State\s+::\s+([0-9\.]+)")
+                    'fluidity::state' : re.compile(r"I\/O\s+::\s+Populate\_State\s+::\s+([0-9\.]+)"),
+                    'fluidity::pressure::assembly' : re.compile(r"\/material_phase\[0\]\/scalar\_field::Pressure::assembly\s+::\s+([0-9\.]+)"),
+                    'fluidity::pressure::solve' : re.compile(r"\/material_phase\[0\]\/scalar\_field::Pressure::solve\s+::\s+([0-9\.]+)"),
+                    'fluidity::velocity::assembly' : re.compile(r"\/material_phase\[0\]\/vector\_field::Velocity::assembly\s+::\s+([0-9\.]+)"),
+                    'fluidity::velocity::solve' : re.compile(r"\/material_phase\[0\]\/vector\_field::Velocity::solve\s+::\s+([0-9\.]+)"),
                     }
 
 class FLRedecompMeshing(FLMeshing):
