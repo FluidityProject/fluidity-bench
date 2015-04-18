@@ -165,6 +165,32 @@ def save_fig(fig, fname):
                 orientation='landscape', format="pdf",
                 transparent=True, bbox_inches='tight')
 
+def add_weak_line(ax, flm, args, region, label, color, linestyle='solid'):
+    params = {'dim': args.dim, 'timesteps': args.timesteps,
+              'reorder': args.reorder, 'ascii': args.ascii}
+    groups = {'np': args.weak}
+    regions = [region]
+    style = {region: {'linestyle': linestyle, 'color': color}}
+    labels = {(args.weak[0],): label}
+    flm.subplot(ax, xaxis='size', kind='plot', xvals=args.size,
+                xlabel='Mesh Size', xticklabels=meshsizes,
+                title='Fluidity Startup Cost', axis='tight',
+                regions=regions, groups=groups, params=params,
+                plotstyle=style, labels=labels)
+
+def add_strong_line(ax, flm, args, region, label, color, linestyle='solid'):
+    regions = [region]
+    params = {'dim': args.dim, 'np': args.parallel, 'timesteps': args.timesteps,
+              'reorder': args.reorder, 'ascii': args.ascii}
+    groups = {'size': args.size}
+    style = {region: {'linestyle': linestyle, 'color': color}}
+    labels = {(args.size[0],): label}
+    flm.subplot(ax, xaxis='np', kind='semilogx', xvals=args.parallel,
+                xlabel='Number of Processes', xticklabels=args.parallel,
+                title='Fluidity Startup Cost', axis='tight',
+                regions=regions, groups=groups, params=params,
+                plotstyle=style, labels=labels)
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -195,53 +221,77 @@ if __name__ == '__main__':
     numColors = 10
     colors = [cmap(i) for i in np.linspace(0, 0.9, numColors)]
 
-    if args.weak:
-        meshsizes = [meshmeta[int(m)][2] for m in args.size]
-        def add_plot_line(ax, region, label, color=colors[0], linestyle='solid'):
-            params = {'dim': args.dim, 'timesteps': args.timesteps,
-                      'reorder': args.reorder, 'ascii': args.ascii}
-            groups = {'np': args.weak}
-            regions = [region]
-            style = {region: {'linestyle': linestyle, 'color': color}}
-            labels = {(args.weak[0],): label}
-            flm.subplot(ax, xaxis='size', kind='plot', xvals=args.size,
-                        xlabel='Mesh Size', xticklabels=meshsizes,
-                        title='Fluidity Startup Cost', axis='tight',
-                        regions=regions, groups=groups, params=params,
-                        plotstyle=style, labels=labels)
+    if args.reorder:
+        fig_pres, ax_pres = create_figure("PressureSolve.pdf")
+        fig_vel, ax_vel = create_figure("VelocityAssembly.pdf")
+        fig_run, ax_run = create_figure("FluidityRun.pdf")
+        fname = "Weak_ascii_plot_dim%d_np%d.pdf" % (args.dim, args.weak[0])
 
+        meshsizes = [meshmeta[int(m)][2] for m in args.size]
+        flm.combine_series([('nprocs', args.weak)], filename='fldmplex')
+
+        add_weak_line(ax_pres, flm, args, 'fluidity::pressure::solve',
+                      'DMPlex RCM', color=colors[0], linestyle='dashed')
+        add_weak_line(ax_vel, flm, args, 'fluidity::velocity::assembly',
+                      'DMPlex RCM', color=colors[0], linestyle='dashed')
+        add_weak_line(ax_run, flm, args, 'fluidity',
+                      'DMPlex RCM', color=colors[0], linestyle='dashed')
+
+        args.reorder = False
+        add_weak_line(ax_pres, flm, args, 'fluidity::pressure::solve',
+                      'DMPlex native', color=colors[0], linestyle='solid')
+        add_weak_line(ax_vel, flm, args, 'fluidity::velocity::assembly',
+                      'DMPlex native', color=colors[0], linestyle='solid')
+        add_weak_line(ax_run, flm, args, 'fluidity',
+                      'DMPlex native', color=colors[0], linestyle='solid')
+
+        flm.combine_series([('nprocs', args.weak)], filename='flredecomp')
+        add_weak_line(ax_pres, flm, args, 'fluidity::pressure::solve',
+                      'DMPlex native', color=colors[1], linestyle='solid')
+        add_weak_line(ax_vel, flm, args, 'fluidity::velocity::assembly',
+                      'DMPlex native', color=colors[1], linestyle='solid')
+        add_weak_line(ax_run, flm, args, 'fluidity',
+                      'DMPlex native', color=colors[1], linestyle='solid')
+
+        save_fig(fig_pres, "PresSolve"+fname)
+        save_fig(fig_vel, "VelAssembly"+fname)
+        save_fig(fig_run, "Fluidity"+fname)
+
+    elif args.weak:
         fig_start, ax_start = create_figure("FluidityStartup.pdf")
         fig_part, ax_part = create_figure("FluidityDistribute.pdf")
         fig_io, ax_io = create_figure("FluidityIO.pdf")
+
+        meshsizes = [meshmeta[int(m)][2] for m in args.size]
 
         # Flredecomp results
         flm.combine_series([('nprocs', args.weak)], filename='flredecomp')
         aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
         flm.aggregate_timings(aggregate)
 
-        add_plot_line(ax_start, 'flredecomp', 'Preprocess',
+        add_weak_line(ax_start, flm, args, 'flredecomp', 'Preprocess',
                       color=colors[0], linestyle='dashed')
-        add_plot_line(ax_start, 'fluidity::state', 'Startup-Preproc',
+        add_weak_line(ax_start, flm, args, 'fluidity::state', 'Startup-Preproc',
                       color=colors[0], linestyle='dotted')
-        add_plot_line(ax_start, 'startup::total', 'Startup-Total',
+        add_weak_line(ax_start, flm, args, 'startup::total', 'Startup-Total',
                       color=colors[0], linestyle='solid')
 
-        add_plot_line(ax_part, 'flredecomp::zoltan', 'Fluidity-Zoltan',
+        add_weak_line(ax_part, flm, args, 'flredecomp::zoltan', 'Fluidity-Zoltan',
                       color=colors[0])
 
-        add_plot_line(ax_io, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
+        add_weak_line(ax_io, flm, args, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
                       color=colors[0])
-        add_plot_line(ax_io, 'fluidity::gmsh_read', 'Preproc-Gmsh',
+        add_weak_line(ax_io, flm, args, 'fluidity::gmsh_read', 'Preproc-Gmsh',
                       color=colors[0], linestyle='dashed')
 
         # DMPlex results
         flm.combine_series([('nprocs', args.weak)], filename='fldmplex')
-        add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
+        add_weak_line(ax_start, flm, args, 'fluidity::state', 'Startup-DMPlex',
                       color=colors[1])
 
-        add_plot_line(ax_part, 'dmplex::distribute', 'DMPlex-Distribute',
+        add_weak_line(ax_part, flm, args, 'dmplex::distribute', 'DMPlex-Distribute',
                       color=colors[1])
-        add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
+        add_weak_line(ax_io, flm, args, 'dmplex::create', 'DMPlex-Gmsh',
                       color=colors[1], linestyle='solid')
 
         if args.ascii:
@@ -254,19 +304,6 @@ if __name__ == '__main__':
 
 
     if args.parallel:
-        def add_plot_line(ax, region, label, color, linestyle='solid'):
-            regions = [region]
-            params = {'dim': args.dim, 'np': args.parallel, 'timesteps': args.timesteps,
-                      'reorder': args.reorder, 'ascii': args.ascii}
-            groups = {'size': args.size}
-            style = {region: {'linestyle': linestyle, 'color': color}}
-            labels = {(args.size[0],): label}
-            flm.subplot(ax, xaxis='np', kind='semilogx', xvals=args.parallel,
-                        xlabel='Number of Processes', xticklabels=args.parallel,
-                        title='Fluidity Startup Cost', axis='tight',
-                        regions=regions, groups=groups, params=params,
-                        plotstyle=style, labels=labels)
-
         fig_start, ax_start = create_figure("FluidityStartup.pdf")
         fig_part, ax_part = create_figure("FluidityDistribute.pdf")
         fig_io, ax_io = create_figure("FluidityIO.pdf")
@@ -276,30 +313,30 @@ if __name__ == '__main__':
         aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
         flm.aggregate_timings(aggregate)
 
-        add_plot_line(ax_start, 'flredecomp', 'Preprocess',
+        add_strong_line(ax_start, flm, args, 'flredecomp', 'Preprocess',
                       color=colors[0], linestyle='dashed')
-        add_plot_line(ax_start, 'fluidity::state', 'Startup-Preproc',
+        add_strong_line(ax_start, flm, args, 'fluidity::state', 'Startup-Preproc',
                       color=colors[0], linestyle='dotted')
-        add_plot_line(ax_start, 'startup::total', 'Startup-Total',
+        add_strong_line(ax_start, flm, args, 'startup::total', 'Startup-Total',
                       color=colors[0], linestyle='solid')
 
-        add_plot_line(ax_part, 'flredecomp::zoltan', 'Fluidity-Zoltan',
+        add_strong_line(ax_part, flm, args, 'flredecomp::zoltan', 'Fluidity-Zoltan',
                       color=colors[0])
 
-        add_plot_line(ax_io, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
+        add_strong_line(ax_io, flm, args, 'flredecomp::gmsh_read', 'Fluidity-Gmsh',
                       color=colors[0])
-        add_plot_line(ax_io, 'fluidity::gmsh_read', 'Preproc-Gmsh',
+        add_strong_line(ax_io, flm, args, 'fluidity::gmsh_read', 'Preproc-Gmsh',
                       color=colors[0], linestyle='dashed')
 
 
         # DMPlex results
         flm.combine_series([('nprocs', args.parallel)], filename='fldmplex')
-        add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
+        add_strong_line(ax_start, flm, args, 'fluidity::state', 'Startup-DMPlex',
                       color=colors[1])
 
-        add_plot_line(ax_part, 'dmplex::distribute', 'DMPlex-Distribute',
+        add_strong_line(ax_part, flm, args, 'dmplex::distribute', 'DMPlex-Distribute',
                       color=colors[1])
-        add_plot_line(ax_io, 'dmplex::create', 'DMPlex-Gmsh',
+        add_strong_line(ax_io, flm, args, 'dmplex::create', 'DMPlex-Gmsh',
                       color=colors[1], linestyle='solid')
 
         if args.ascii:
