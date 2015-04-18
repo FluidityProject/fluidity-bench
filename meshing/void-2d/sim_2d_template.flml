@@ -139,7 +139,7 @@
             <real_value rank="0">1e-07</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">2000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -170,7 +170,7 @@
                 <real_value rank="0">1e-07</real_value>
               </relative_error>
               <max_iterations>
-                <integer_value rank="0">2000</integer_value>
+                <integer_value rank="0">10000</integer_value>
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
@@ -226,7 +226,7 @@
             <real_value rank="0">1e-07</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">2000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -357,7 +357,7 @@
                 <real_value rank="0">1e-07</real_value>
               </relative_error>
               <max_iterations>
-                <integer_value rank="0">2000</integer_value>
+                <integer_value rank="0">10000</integer_value>
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
