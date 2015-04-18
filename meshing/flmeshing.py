@@ -21,9 +21,9 @@ class FLMeshing(Benchmark):
         self.meta['reorder'] = args.reorder
         self.meta['ascii'] = args.ascii
 
-        self.series = {'dim': self.meta['dim'],
-                       'nprocs': self.meta['nprocs']}
-        self.params = [('size', self.meta['sizes']),
+        self.series = {'nprocs': self.meta['nprocs']}
+        self.params = [('dim', [self.meta['dim']]),
+                       ('size', self.meta['sizes']),
                        ('timesteps', [self.meta['timesteps']]),
                        ('reorder', [self.meta['reorder']]),
                        ('ascii', [self.meta['ascii']])]
@@ -176,8 +176,12 @@ if __name__ == '__main__':
                    help='Dimension of benchmark mesh (default=2)')
     p.add_argument('-m', '--size', type=int, nargs='+',
                    help='mesh sizes to plot')
+    p.add_argument('-ts', '--timesteps', type=int, default=1,
+                   help='Number of procs to run on')
     p.add_argument('--ascii', action='store_true', dest='ascii', default=False,
                    help='Use meshes in ASCII Gmsh format')
+    p.add_argument('--reorder', action='store_true', dest='reorder', default=False,
+                   help='Apply RCM reordering to DMPlex-generated meshes')
     args = p.parse_args()
     flm = FLMeshing(resultsdir=args.resultsdir, plotdir=args.plotdir)
 
@@ -194,7 +198,8 @@ if __name__ == '__main__':
     if args.weak:
         meshsizes = [meshmeta[int(m)][2] for m in args.size]
         def add_plot_line(ax, region, label, color=colors[0], linestyle='solid'):
-            params = {'dim': args.dim, 'ascii': args.ascii}
+            params = {'dim': args.dim, 'timesteps': args.timesteps,
+                      'reorder': args.reorder, 'ascii': args.ascii}
             groups = {'np': args.weak}
             regions = [region]
             style = {region: {'linestyle': linestyle, 'color': color}}
@@ -210,8 +215,7 @@ if __name__ == '__main__':
         fig_io, ax_io = create_figure("FluidityIO.pdf")
 
         # Flredecomp results
-        flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
-                           filename='flredecomp')
+        flm.combine_series([('nprocs', args.weak)], filename='flredecomp')
         aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
         flm.aggregate_timings(aggregate)
 
@@ -231,8 +235,7 @@ if __name__ == '__main__':
                       color=colors[0], linestyle='dashed')
 
         # DMPlex results
-        flm.combine_series([('dim', [args.dim]), ('nprocs', args.weak)],
-                           filename='fldmplex')
+        flm.combine_series([('nprocs', args.weak)], filename='fldmplex')
         add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
                       color=colors[1])
 
@@ -253,7 +256,8 @@ if __name__ == '__main__':
     if args.parallel:
         def add_plot_line(ax, region, label, color, linestyle='solid'):
             regions = [region]
-            params = {'dim': args.dim, 'np': args.parallel, 'ascii': args.ascii}
+            params = {'dim': args.dim, 'np': args.parallel, 'timesteps': args.timesteps,
+                      'reorder': args.reorder, 'ascii': args.ascii}
             groups = {'size': args.size}
             style = {region: {'linestyle': linestyle, 'color': color}}
             labels = {(args.size[0],): label}
@@ -268,8 +272,7 @@ if __name__ == '__main__':
         fig_io, ax_io = create_figure("FluidityIO.pdf")
 
         # Flredecomp results
-        flm.combine_series([('dim', [args.dim]), ('nprocs', args.parallel)],
-                           filename='flredecomp')
+        flm.combine_series([('nprocs', args.parallel)], filename='flredecomp')
         aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
         flm.aggregate_timings(aggregate)
 
@@ -290,8 +293,7 @@ if __name__ == '__main__':
 
 
         # DMPlex results
-        flm.combine_series([('dim', [args.dim]), ('nprocs', args.parallel)],
-                           filename='fldmplex')
+        flm.combine_series([('nprocs', args.parallel)], filename='fldmplex')
         add_plot_line(ax_start, 'fluidity::state', 'Startup-DMPlex',
                       color=colors[1])
 
