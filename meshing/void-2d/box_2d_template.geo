@@ -1,6 +1,6 @@
 lf = $INSERT_LF$;
 h = 10;
-l = 1.2*h;
+l = 1.5*h;
 r = h*0.1;
 el = lf*h;
 
