@@ -21,7 +21,6 @@ class FLMeshing(Benchmark):
         self.meta['reorder'] = args.reorder
         self.meta['ascii'] = args.ascii
 
-        self.series = {'dim': self.meta['dim']}
         self.params = [('dim', [self.meta['dim']]),
                        ('size', self.meta['sizes']),
                        ('nprocs', self.meta['nprocs']),
@@ -240,7 +239,7 @@ if __name__ == '__main__':
         fig_vel, ax_vel = create_figure("VelocityAssembly.pdf")
         fig_run, ax_run = create_figure("FluidityRun.pdf")
 
-        flm.combine_series([('nprocs', nprocs)], filename='fldmplex')
+        flm.load(filename='fldmplex')
 
         # Add reordered DMPlex results
         add_plot_line(ax_pres, flm, args, 'fluidity::pressure::solve',
@@ -260,7 +259,7 @@ if __name__ == '__main__':
                       'DMPlex native', color=colors[0], linestyle='solid')
 
         # Add native flredecomp results
-        flm.combine_series([('nprocs', nprocs)], filename='flredecomp')
+        flm.load(filename='flredecomp')
         add_plot_line(ax_pres, flm, args, 'fluidity::pressure::solve',
                       'DMPlex native', color=colors[1], linestyle='solid')
         add_plot_line(ax_vel, flm, args, 'fluidity::velocity::assembly',
@@ -279,7 +278,7 @@ if __name__ == '__main__':
         fig_io, ax_io = create_figure("FluidityIO.pdf")
 
         # Flredecomp results
-        flm.combine_series([('nprocs', nprocs)], filename='flredecomp')
+        flm.load(filename='flredecomp')
         aggregate = {'startup::total': ['flredecomp', 'fluidity::state']}
         flm.aggregate_timings(aggregate)
 
@@ -299,7 +298,7 @@ if __name__ == '__main__':
                       color=colors[0], linestyle='dashed')
 
         # DMPlex results
-        flm.combine_series([('nprocs', nprocs)], filename='fldmplex')
+        flm.load(filename='fldmplex')
         add_plot_line(ax_start, flm, args, 'fluidity::state', 'Startup-DMPlex',
                       color=colors[1])
 
