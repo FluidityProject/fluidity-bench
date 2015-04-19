@@ -21,9 +21,10 @@ class FLMeshing(Benchmark):
         self.meta['reorder'] = args.reorder
         self.meta['ascii'] = args.ascii
 
-        self.series = {'nprocs': self.meta['nprocs']}
+        self.series = {'dim': self.meta['dim']}
         self.params = [('dim', [self.meta['dim']]),
                        ('size', self.meta['sizes']),
+                       ('nprocs', self.meta['nprocs']),
                        ('timesteps', [self.meta['timesteps']]),
                        ('reorder', [self.meta['reorder']]),
                        ('ascii', [self.meta['ascii']])]
@@ -39,7 +40,7 @@ class FLMeshing(Benchmark):
                        help='Dimension of test mesh (default 2D)')
         p.add_argument('-m', '--size', type=int, nargs='+',
                        help='Relative mesh sizes to use: lf = 1 / size')
-        p.add_argument('-np', '--nprocs', type=int,
+        p.add_argument('-np', '--nprocs', type=int, nargs='+',
                        help='Number of procs to run on')
         p.add_argument('-ts', '--timesteps', type=int, default=1,
                        help='Number of procs to run on')
